@@ -87,6 +87,7 @@ def process_images(file_pairs, output_folder, output_format):
                 create_pdf(output_folder, base_name, temp_image)
             else:
                 output_image_path = os.path.join(output_folder, f'{base_name}_merged.{output_format.lower()}')
+                st.write(f"Saving file to: {output_image_path}")
                 merge_images(image1, image2, output_image_path, output_format)
         st.success("Images have been processed successfully.")
     except Exception as e:
@@ -115,6 +116,7 @@ if uploaded_files:
             if output_folder:
                 if not os.path.exists(output_folder):
                     os.makedirs(output_folder)
+                st.write(f"Output folder: {output_folder}")
                 process_images(file_pairs, output_folder, output_format)
             else:
                 st.warning("Please provide an output folder path.")
