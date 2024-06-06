@@ -49,7 +49,7 @@ def compress_image(image_path, target_size_kb):
 
 def create_pdf(output_folder, base_name, collage_image):
     try:
-        pdf_path = os.path.join(output_folder, f'{base_name}_ab.pdf')
+        pdf_path = os.path.join(output_folder, f'{base_name}_merged.pdf')
         c = canvas.Canvas(pdf_path, pagesize=letter)
         c.drawImage(collage_image, 0, 0, width=letter[0], height=letter[1], preserveAspectRatio=True)
         c.save()
@@ -80,12 +80,13 @@ def compress_pdf(pdf_path, target_size_kb):
 
 def process_images(file_pairs, output_folder, output_format):
     try:
-        for base_name, (image1, image2) in file_pairs.items():
+        for idx, (image1, image2) in enumerate(file_pairs):
+            base_name = f"image_{idx+1}"
             if output_format.lower() == 'pdf':
                 temp_image = merge_images(image1, image2, None, 'JPEG')
                 create_pdf(output_folder, base_name, temp_image)
             else:
-                output_image_path = os.path.join(output_folder, f'{base_name}_ab.{output_format.lower()}')
+                output_image_path = os.path.join(output_folder, f'{base_name}_merged.{output_format.lower()}')
                 merge_images(image1, image2, output_image_path, output_format)
         st.success("Images have been processed successfully.")
     except Exception as e:
@@ -98,29 +99,22 @@ st.write("Upload pairs of images to merge and compress them.")
 uploaded_files = st.file_uploader("Choose image files", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
 
 if uploaded_files:
-    file_pairs = {}
-    for uploaded_file in uploaded_files:
-        filename = uploaded_file.name
-        base_name = '_'.join(filename.split('_')[:-1])
-        suffix = filename.split('_')[-1].split('.')[0]
-        if base_name not in file_pairs:
-            file_pairs[base_name] = [None, None]
-        if suffix == 'a':
-            file_pairs[base_name][0] = Image.open(uploaded_file)
-        elif suffix == 'b':
-            file_pairs[base_name][1] = Image.open(uploaded_file)
+    if len(uploaded_files) % 2 != 0:
+        st.warning("Please upload an even number of images to form pairs.")
+    else:
+        file_pairs = []
+        for i in range(0, len(uploaded_files), 2):
+            image1 = Image.open(uploaded_files[i])
+            image2 = Image.open(uploaded_files[i + 1])
+            file_pairs.append((image1, image2))
 
-    output_folder = st.text_input("Output Folder Path:")
-    output_format = st.selectbox("Output Format:", ["JPEG", "PNG", "PDF"])
+        output_folder = st.text_input("Output Folder Path:")
+        output_format = st.selectbox("Output Format:", ["JPEG", "PNG", "PDF"])
 
-    if st.button("Start Processing"):
-        if output_folder:
-            if not os.path.exists(output_folder):
-                os.makedirs(output_folder)
-            valid_pairs = {k: v for k, v in file_pairs.items() if None not in v}
-            if valid_pairs:
-                process_images(valid_pairs, output_folder, output_format)
+        if st.button("Start Processing"):
+            if output_folder:
+                if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
+                process_images(file_pairs, output_folder, output_format)
             else:
-                st.warning("No valid image pairs found.")
-        else:
-            st.warning("Please provide an output folder path.")
+                st.warning("Please provide an output folder path.")
