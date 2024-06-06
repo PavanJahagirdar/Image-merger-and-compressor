@@ -3,6 +3,7 @@ from PIL import Image
 from io import BytesIO
 from zipfile import ZipFile
 import base64
+import os
 
 def merge_images(image1, image2, output_format):
     try:
@@ -17,13 +18,30 @@ def merge_images(image1, image2, output_format):
         collage.paste(image2, (width1, 0))
         
         output_bytes = BytesIO()
-        collage.save(output_bytes, format=output_format.upper())
+        collage.save(output_bytes, format=output_format.upper(), quality=85)
         output_bytes.seek(0)
         
         return output_bytes
     except Exception as e:
         st.error(f"Error processing images: {e}")
         return None
+
+def compress_image(image_bytes, output_format):
+    img = Image.open(image_bytes)
+    output_bytes = BytesIO()
+    quality = 85
+
+    while True:
+        img.save(output_bytes, format=output_format.upper(), quality=quality)
+        if output_bytes.tell() <= 100 * 1024:
+            break
+        quality -= 5
+        output_bytes.seek(0)
+        if quality < 10:
+            break
+
+    output_bytes.seek(0)
+    return output_bytes
 
 def process_images(file_pairs, output_format):
     try:
@@ -33,7 +51,8 @@ def process_images(file_pairs, output_format):
                 base_name = f"image_{idx+1}_merged.{output_format.lower()}"
                 merged_image_bytes = merge_images(image1, image2, output_format)
                 if merged_image_bytes:
-                    zip_file.writestr(base_name, merged_image_bytes.getvalue())
+                    compressed_image_bytes = compress_image(merged_image_bytes, output_format)
+                    zip_file.writestr(base_name, compressed_image_bytes.getvalue())
         
         zip_buffer.seek(0)
         return zip_buffer
@@ -64,7 +83,7 @@ if uploaded_files:
 
         output_format = st.selectbox("Output Format:", ["JPEG", "PNG"])
 
-        if st.button("Start Processing"):
+        if output_format:
             zip_buffer = process_images(file_pairs, output_format)
             if zip_buffer:
                 st.markdown(generate_download_link(zip_buffer), unsafe_allow_html=True)
