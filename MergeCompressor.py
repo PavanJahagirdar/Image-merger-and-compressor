@@ -1,7 +1,6 @@
 import streamlit as st
 from PIL import Image
 from io import BytesIO
-from zipfile import ZipFile
 import base64
 
 def merge_images(image1, image2, output_format):
@@ -30,7 +29,7 @@ def compress_image(image_bytes, output_format):
     output_bytes = BytesIO()
     quality = 85
 
-    # Resize to ensure the image fits within a 800x800 bounding box
+    # Resize to ensure the image fits within an 800x800 bounding box
     max_dimension = 800
     img.thumbnail((max_dimension, max_dimension), Image.ANTIALIAS)
 
@@ -47,31 +46,14 @@ def compress_image(image_bytes, output_format):
     output_bytes.seek(0)
     return output_bytes
 
-def process_images(file_pairs, output_format):
-    try:
-        zip_buffer = BytesIO()
-        with ZipFile(zip_buffer, 'a') as zip_file:
-            for idx, (image1, image2) in enumerate(file_pairs):
-                base_name = f"image_{idx+1}_merged.{output_format.lower()}"
-                merged_image_bytes = merge_images(image1, image2, output_format)
-                if merged_image_bytes:
-                    compressed_image_bytes = compress_image(merged_image_bytes, output_format)
-                    zip_file.writestr(base_name, compressed_image_bytes.getvalue())
-        
-        zip_buffer.seek(0)
-        return zip_buffer
-    except Exception as e:
-        st.error(f"Error processing images: {e}")
-        return None
-
-def generate_download_link(zip_buffer, filename="merged_images.zip"):
-    b64 = base64.b64encode(zip_buffer.getvalue()).decode()
-    href = f'<a href="data:application/zip;base64,{b64}" download="{filename}">Download Merged Images</a>'
+def generate_download_link(file_bytes, filename):
+    b64 = base64.b64encode(file_bytes.getvalue()).decode()
+    href = f'<a href="data:file/{filename.split(".")[-1]};base64,{b64}" download="{filename}">Download {filename}</a>'
     return href
 
 st.title("Image Merger and Compressor")
 
-st.write("Upload pairs of images to merge and download them as a ZIP file.")
+st.write("Upload pairs of images to merge and download them in the selected format.")
 
 uploaded_files = st.file_uploader("Choose image files", accept_multiple_files=True, type=['png', 'jpg', 'jpeg'])
 
@@ -88,6 +70,11 @@ if uploaded_files:
         output_format = st.selectbox("Output Format:", ["JPEG", "PNG"])
 
         if output_format:
-            zip_buffer = process_images(file_pairs, output_format)
-            if zip_buffer:
-                st.markdown(generate_download_link(zip_buffer), unsafe_allow_html=True)
+            st.write("Processing images...")
+            for idx, (image1, image2) in enumerate(file_pairs):
+                merged_image_bytes = merge_images(image1, image2, output_format)
+                if merged_image_bytes:
+                    compressed_image_bytes = compress_image(merged_image_bytes, output_format)
+                    filename = f"image_{idx+1}_merged.{output_format.lower()}"
+                    download_link = generate_download_link(compressed_image_bytes, filename)
+                    st.markdown(download_link, unsafe_allow_html=True)
