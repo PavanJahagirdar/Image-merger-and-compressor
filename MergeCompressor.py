@@ -3,7 +3,6 @@ from PIL import Image
 from io import BytesIO
 from zipfile import ZipFile
 import base64
-import os
 
 def merge_images(image1, image2, output_format):
     try:
@@ -18,7 +17,7 @@ def merge_images(image1, image2, output_format):
         collage.paste(image2, (width1, 0))
         
         output_bytes = BytesIO()
-        collage.save(output_bytes, format=output_format.upper(), quality=85)
+        collage.save(output_bytes, format=output_format.upper())
         output_bytes.seek(0)
         
         return output_bytes
@@ -31,12 +30,17 @@ def compress_image(image_bytes, output_format):
     output_bytes = BytesIO()
     quality = 85
 
+    # Resize to ensure the image fits within a 800x800 bounding box
+    max_dimension = 800
+    img.thumbnail((max_dimension, max_dimension), Image.ANTIALIAS)
+
     while True:
+        output_bytes = BytesIO()
         img.save(output_bytes, format=output_format.upper(), quality=quality)
-        if output_bytes.tell() <= 100 * 1024:
+        size_kb = output_bytes.tell() / 1024
+        if size_kb <= 100:
             break
         quality -= 5
-        output_bytes.seek(0)
         if quality < 10:
             break
 
