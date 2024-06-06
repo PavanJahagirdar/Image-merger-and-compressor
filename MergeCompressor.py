@@ -1,3 +1,8 @@
+streamlit==1.10.0
+Pillow==9.0.1
+reportlab==3.6.3
+PyPDF2==3.0.0
+
 import os
 import streamlit as st
 from PIL import Image
