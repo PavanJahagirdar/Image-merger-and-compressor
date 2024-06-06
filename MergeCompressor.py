@@ -1,21 +1,9 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[14]:
-
-
 import os
 import streamlit as st
 from PIL import Image
-import imageio
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from PyPDF2 import PdfReader, PdfWriter
-
-
-# In[15]:
-
-
 def merge_images(image1_path, image2_path, output_path, output_format):
     try:
         image1 = Image.open(image1_path)
@@ -40,10 +28,10 @@ def merge_images(image1_path, image2_path, output_path, output_format):
         st.error(f"Error processing images {image1_path} and {image2_path}: {e}")
 def compress_image(image_path, target_size_kb):
     try:
-        img = imageio.imread(image_path)
+        img = Image.open(image_path)
         quality = 95
         while True:
-            imageio.imwrite(image_path, img, format='jpeg', quality=quality)
+            img.save(image_path, 'JPEG', quality=quality)
             if os.path.getsize(image_path) <= target_size_kb * 1024:
                 break
             quality -= 5
@@ -118,16 +106,3 @@ if st.button("Start Processing"):
         st.success("Images have been processed successfully.")
     else:
         st.warning("Please provide both input and output folder paths.")
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
